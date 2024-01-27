@@ -22,7 +22,9 @@ defmodule Clerk.MixProject do
   defp deps do
     [
       {:joken, "~> 2.6"},
-      {:joken_jwks, "~> 1.6"}
+      {:joken_jwks, "~> 1.6"},
+      {:plug, ">= 0.0.0"},
+      {:finch, "~> 0.17.0"}
     ]
   end
 end

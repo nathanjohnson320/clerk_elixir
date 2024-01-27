@@ -45,7 +45,8 @@ defmodule Clerk do
     domain = Keyword.fetch!(opts, :domain)
 
     children = [
-      {FetchingStrategy, jwks_url: "https://#{domain}/.well-known/jwks.json"}
+      {FetchingStrategy, jwks_url: "https://#{domain}/.well-known/jwks.json"},
+      {Finch, name: ClerkHTTP}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
