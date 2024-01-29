@@ -10,7 +10,7 @@ by adding `clerk` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:clerk, "~> 0.1.0"}
+    {:clerk, "~> 0.2.0"}
   ]
 end
 ```
