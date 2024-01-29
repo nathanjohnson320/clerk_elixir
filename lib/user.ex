@@ -346,4 +346,11 @@ defmodule Clerk.User do
       opts
     )
   end
+
+  @doc """
+  Delete a user's profile image
+  """
+  def delete_profile_image(user_id, opts \\ []) do
+    HTTP.delete("/v1/users/#{user_id}/profile_image", %{}, opts)
+  end
 end
