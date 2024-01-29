@@ -353,4 +353,78 @@ defmodule Clerk.User do
   def delete_profile_image(user_id, opts \\ []) do
     HTTP.delete("/v1/users/#{user_id}/profile_image", %{}, opts)
   end
+
+  @doc """
+  Update a user's metadata attributes by merging existing values with the provided parameters.
+
+  This endpoint behaves differently than the Update a user endpoint. Metadata values will not be replaced entirely. Instead, a deep merge will be performed. Deep means that any nested JSON objects will be merged as well.
+
+  You can remove metadata keys at any level by setting their value to null.
+
+  ## REQUEST BODY SCHEMA: application/json
+
+  ### public_metadata
+  object
+  Metadata saved on the user, that is visible to both your frontend and backend. The new object will be merged with the existing value.
+
+  ### private_metadata
+  object
+  Metadata saved on the user that is only visible to your backend. The new object will be merged with the existing value.
+
+  ### unsafe_metadata
+  object
+  Metadata saved on the user, that can be updated from both the Frontend and Backend APIs. The new object will be merged with the existing value.
+
+  Note: Since this data can be modified from the frontend, it is not guaranteed to be safe.
+  """
+  def merge_and_update_user_metadata(user_id, metadata, opts \\ []) do
+    HTTP.patch("/v1/users/#{user_id}/metadata", metadata, %{}, opts)
+  end
+
+  @doc """
+  Fetch the corresponding OAuth access token for a user that has previously authenticated with a particular OAuth provider. For OAuth 2.0, if the access token has expired and we have a corresponding refresh token, the access token will be refreshed transparently the new one will be returned.
+  """
+  def oauth_access_tokens(user_id, provider, opts \\ []) do
+    HTTP.get("/v1/users/#{user_id}/oauth_access_tokens/#{provider}", %{}, opts)
+  end
+
+  @doc """
+  Retrieve a paginated list of the user's organization memberships
+
+  ## QUERY PARAMETERS
+
+  ### limit
+  number [ 1 .. 500 ]
+  Default: 10
+  Applies a limit to the number of results returned. Can be used for paginating the results together with offset. Must be an integer greater than zero and less than 500. By default, if not supplied, a limit of 10 is used.
+
+  ### offset
+  number >= 0
+  Default: 0
+  Skip the first offset results when paginating. Needs to be an integer greater or equal to zero. To be used in conjunction with limit.
+  """
+  def list_organization_memberships(user_id, params \\ %{}, opts \\ []) do
+    HTTP.get("/v1/users/#{user_id}/organization_memberships", params, opts)
+  end
+
+  @doc """
+  Check that the user's password matches the supplied input. Useful for custom auth flows and re-verification.
+  """
+  def verify_password(user_id, password, opts \\ []) do
+    HTTP.post("/v1/users/#{user_id}/verify_password", %{"password" => password}, %{}, opts)
+  end
+
+  @doc """
+  Verify that the provided TOTP or backup code is valid for the user. Verifying a backup code will result it in being consumed (i.e. it will become invalid). Useful for custom auth flows and re-verification.
+  """
+  def verify_totp(user_id, code, opts \\ []) do
+    HTTP.post("/v1/users/#{user_id}/verify_totp", %{"code" => code}, %{}, opts)
+  end
+
+  @doc """
+  Disable all of a user's MFA methods (e.g. OTP sent via SMS, TOTP on their authenticator app) at once.
+  """
+  def disable_mfa(user_id, opts \\ []) do
+    HTTP.delete("/v1/users/#{user_id}/mfa", %{}, opts)
+  end
 end
