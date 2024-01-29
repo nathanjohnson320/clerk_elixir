@@ -1,11 +1,16 @@
 defmodule Clerk.User do
   alias Clerk.HTTP
 
+  @doc """
+  Retrieve the details of a user
+  """
   def get(user_id, opts \\ []) do
     HTTP.get("/v1/users/#{user_id}", %{}, opts)
   end
 
   @doc """
+  Returns a list of all users. The users are returned sorted by creation date, with the newest users appearing first.
+
   ## QUERY PARAMETERS
 
   ### email_address
@@ -66,6 +71,8 @@ defmodule Clerk.User do
   end
 
   @doc """
+  Creates a new user. Your user management settings determine how you should setup your user model.
+
   ## REQUEST BODY SCHEMA: application/json
 
   ### external_id
@@ -108,84 +115,6 @@ defmodule Clerk.User do
   string
   The hashing algorithm that was used to generate the password digest. The algorithms we support at the moment are bcrypt, bcrypt_sha256_django, md5, pbkdf2_sha256, pbkdf2_sha256_django, phpass, scrypt_firebase, sha256 and the argon2 variants argon2i and argon2id.
 
-  If you need support for any particular hashing algorithm, please let us know.
-
-  Note: for password hashers considered insecure (at this moment MD5 and SHA256), the corresponding user password hashes will be transparently migrated to Bcrypt (a secure hasher) upon the user's first successful password sign in. Insecure schemes are marked with (insecure) in the list below.
-
-  Each of the supported hashers expects the incoming digest to be in a particular format. Specifically:
-
-  bcrypt: The digest should be of the following form:
-
-  $<algorithm version>$<cost>$<salt & hash>
-
-  bcrypt_sha256_django: This is the Django-specific variant of Bcrypt, using SHA256 hashing function. The format should be as follows (as exported from Django):
-
-  bcrypt_sha256$$<algorithm version>$<cost>$<salt & hash>
-
-  md5 (insecure): The digest should follow the regular form e.g.:
-
-  5f4dcc3b5aa765d61d8327deb882cf99
-
-  pbkdf2_sha256: This is the PBKDF2 algorithm using the SHA256 hashing function. The format should be as follows:
-
-  pbkdf2_sha256$<iterations>$<salt>$<hash>
-
-  Note: Both the salt and the hash are expected to be base64-encoded.
-
-  pbkdf2_sha256_django: This is the Django-specific variant of PBKDF2 and the digest should have the following format (as exported from Django):
-
-  pbkdf2_sha256$<iterations>$<salt>$<hash>
-
-  Note: The salt is expected to be un-encoded, the hash is expected base64-encoded.
-
-  pbkdf2_sha1: This is similar to pkbdf2_sha256_django, but with two differences:
-
-  uses sha1 instead of sha256
-  accepts the hash as a hex-encoded string
-  The format is the following:
-
-  pbkdf2_sha1$<iterations>$<salt>$<hash-as-hex-string>
-
-  phpass: Portable public domain password hashing framework for use in PHP applications. Digests hashed with phpass have the following sections:
-
-  The format is the following:
-
-  $P$<rounds><salt><encoded-checksum>
-
-  $P$ is the prefix used to identify phpass hashes.
-  rounds is a single character encoding a 6-bit integer representing the number of rounds used.
-  salt is eight characters drawn from [./0-9A-Za-z], providing a 48-bit salt.
-  checksum is 22 characters drawn from the same set, encoding the 128-bit checksum with MD5.
-  scrypt_firebase: The Firebase-specific variant of scrypt. The value is expected to have 6 segments separated by the $ character and include the following information:
-
-  hash: The actual Base64 hash. This can be retrieved when exporting the user from Firebase. salt: The salt used to generate the above hash. Again, this is given when exporting the user. signer key: The base64 encoded signer key. salt separator: The base64 encoded salt separator. rounds: The number of rounds the algorithm needs to run. memory cost: The cost of the algorithm run
-
-  The first 2 (hash and salt) are per user and can be retrieved when exporting the user from Firebase. The other 4 values (signer key, salt separator, rounds and memory cost) are project-wide settings and can be retrieved from the project's password hash parameters.
-
-  Once you have all these, you can combine it in the following format and send this as the digest in order for Clerk to accept it:
-
-  <hash>$<salt>$<signer key>$<salt separator>$<rounds>$<memory cost>
-
-  argon2i: Algorithms in the argon2 family generate digests that encode the following information:
-
-  version (v): The argon version, version 19 is assumed memory (m): The memory used by the algorithm (in kibibytes) iterations (t): The number of iterations to perform parallelism (p): The number of threads to use
-
-  Parts are demarcated by the $ character, with the first part identifying the algorithm variant. The middle part is a comma-separated list of the encoding options (memory, iterations, parallelism). The final part is the actual digest.
-
-  $argon2i$v=19$m=4096,t=3,p=1$4t6CL3P7YiHBtwESXawI8Hm20zJj4cs7/4/G3c187e0$m7RQFczcKr5bIR0IIxbpO2P0tyrLjf3eUW3M3QSwnLc
-
-  argon2id: See the previous algorithm for an explanation of the formatting.
-
-  For the argon2id case, the value of the algorithm in the first part of the digest is argon2id:
-
-  $argon2id$v=19$m=64,t=4,p=8$Z2liZXJyaXNo$iGXEpMBTDYQ8G/71tF0qGjxRHEmR3gpGULcE93zUJVU
-
-  sha256 (insecure): The digest should be a 64-length hex string, e.g.:
-
-  9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
-
-  Enum: "argon2i" "argon2id" "bcrypt" "bcrypt_sha256_django" "md5" "pbkdf2_sha256" "pbkdf2_sha256_django" "pbkdf2_sha1" "phpass" "scrypt_firebase" "sha256"
-
   ### skip_password_checks
   boolean
   When set to true all password checks are skipped. It is recommended to use this method only when migrating plaintext passwords to Clerk. Upon migration the user base should be prompted to pick stronger password.
@@ -227,6 +156,8 @@ defmodule Clerk.User do
   end
 
   @doc """
+  Returns a total count of all users that match the given filtering criteria.
+
   ## QUERY PARAMETERS
   ### email_address
   Array of strings
@@ -258,5 +189,161 @@ defmodule Clerk.User do
   """
   def count(params \\ %{}, opts \\ []) do
     HTTP.get("/v1/users/count", params, opts)
+  end
+
+  @doc """
+  Update a user's attributes.
+
+  ## REQUEST BODY SCHEMA: application/json
+
+  ### external_id
+  string or null
+  The ID of the user as used in your external systems or your previous authentication solution. Must be unique across your instance.
+
+  ### first_name
+  string or null
+  The first name to assign to the user
+
+  ### last_name
+  string or null
+  The last name to assign to the user
+
+  ### primary_email_address_id
+  string
+  The ID of the email address to set as primary. It must be verified, and present on the current user.
+
+  ### notify_primary_email_address_changed
+  boolean
+  Default: false
+  If set to true, the user will be notified that their primary email address has changed. By default, no notification is sent.
+
+  ### primary_phone_number_id
+  string
+  The ID of the phone number to set as primary. It must be verified, and present on the current user.
+
+  ### primary_web3_wallet_id
+  string
+  The ID of the web3 wallets to set as primary. It must be verified, and present on the current user.
+
+  ### username
+  string or null
+  The username to give to the user. It must be unique across your instance.
+
+  ### profile_image_id
+  string or null
+  The ID of the image to set as the user's profile image
+
+  ### password
+  string or null
+  The plaintext password to give the user. Must be at least 8 characters long, and can not be in any list of hacked passwords.
+
+  ### password_digest
+  string
+  In case you already have the password digests and not the passwords, you can use them for the newly created user via this property. The digests should be generated with one of the supported algorithms. The hashing algorithm can be specified using the password_hasher property.
+
+  ### password_hasher
+  string
+  The hashing algorithm that was used to generate the password digest. The algorithms we support at the moment are bcrypt, bcrypt_sha256_django, md5, pbkdf2_sha256, pbkdf2_sha256_django, phpass, scrypt_firebase, sha256 and the argon2 variants argon2i and argon2id.
+
+  ### skip_password_checks
+  boolean or null
+  Set it to true if you're updating the user's password and want to skip any password policy settings check. This parameter can only be used when providing a password.
+
+  ### sign_out_of_other_sessions
+  boolean or null
+  Set to true to sign out the user from all their active sessions once their password is updated. This parameter can only be used when providing a password.
+
+  ### totp_secret
+  string
+  In case TOTP is configured on the instance, you can provide the secret to enable it on the specific user without the need to reset it. Please note that currently the supported options are:
+
+  Period: 30 seconds
+  Code length: 6 digits
+  Algorithm: SHA1
+
+  ### backup_codes
+  Array of strings
+  If Backup Codes are configured on the instance, you can provide them to enable it on the specific user without the need to reset them. You must provide the backup codes in plain format or the corresponding bcrypt digest.
+
+  ### public_metadata
+  object
+  Metadata saved on the user, that is visible to both your Frontend and Backend APIs
+
+  ### private_metadata
+  object
+  Metadata saved on the user, that is only visible to your Backend API
+
+  ### unsafe_metadata
+  object
+  Metadata saved on the user, that can be updated from both the Frontend and Backend APIs. Note: Since this data can be modified from the frontend, it is not guaranteed to be safe.
+
+  ### delete_self_enabled
+  boolean or null
+  If true, the user can delete themselves with the Frontend API.
+
+  ### create_organization_enabled
+  boolean or null
+  If true, the user can create organizations with the Frontend API.
+
+  ### created_at
+  string
+  A custom date/time denoting when the user signed up to the application, specified in RFC3339 format (e.g. 2012-10-20T07:15:20.902Z).
+  """
+  def update(user_id, params, opts \\ []) do
+    HTTP.patch("/v1/users/#{user_id}", params, %{}, opts)
+  end
+
+  @doc """
+  Delete the specified user
+  """
+  def delete(user_id, opts \\ []) do
+    HTTP.delete("/v1/users/#{user_id}", %{}, opts)
+  end
+
+  @doc """
+  Marks the given user as banned, which means that all their sessions are revoked and they are not allowed to sign in again.
+  """
+  def ban(user_id, opts \\ []) do
+    HTTP.post("/v1/users/#{user_id}/ban", %{}, %{}, opts)
+  end
+
+  @doc """
+  Removes the ban mark from the given user.
+  """
+  def unban(user_id, opts \\ []) do
+    HTTP.post("/v1/users/#{user_id}/unban", %{}, %{}, opts)
+  end
+
+  @doc """
+  Marks the given user as locked, which means they are not allowed to sign in again until the lock expires. Lock duration can be configured in the instance's restrictions settings.
+  """
+  def lock(user_id, opts \\ []) do
+    HTTP.post("/v1/users/#{user_id}/lock", %{}, %{}, opts)
+  end
+
+  @doc """
+  Removes the lock from the given user.
+  """
+  def unlock(user_id, opts \\ []) do
+    HTTP.post("/v1/users/#{user_id}/unlock", %{}, %{}, opts)
+  end
+
+  @doc """
+  Update a user's profile image
+
+  # Example
+
+  ```elixir
+    file = "~/Downloads/something.jpeg" |> Path.expand() |> File.read!()
+    Clerk.User.update_profile_image("my_user_id", file)
+  ```
+  """
+  def update_profile_image(user_id, body, opts \\ []) do
+    HTTP.post_form(
+      "/v1/users/#{user_id}/profile_image",
+      Multipart.Part.text_field(body, :file),
+      %{},
+      opts
+    )
   end
 end

@@ -2,11 +2,33 @@ defmodule Clerk.HTTP do
   @domain "https://api.clerk.com"
 
   def get(url, params \\ %{}, opts \\ []) do
-    Finch.build(:get, url(url, params), headers(opts)) |> request()
+    :get |> Finch.build(url(url, params), headers(opts)) |> request()
   end
 
   def post(url, body, query_params \\ %{}, opts \\ []) do
-    Finch.build(:post, url(url, query_params), headers(opts), Jason.encode!(body)) |> request()
+    :post |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body)) |> request()
+  end
+
+  def post_form(url, body, query_params \\ %{}, opts \\ []) do
+    multipart = Multipart.add_part(Multipart.new(), body)
+    content_type = Multipart.content_type(multipart, "multipart/form-data")
+    opts = Keyword.put(opts, :content_type, content_type)
+
+    :post
+    |> Finch.build(
+      url(url, query_params),
+      headers(opts),
+      {:stream, Multipart.body_stream(multipart)}
+    )
+    |> request()
+  end
+
+  def patch(url, body, query_params \\ %{}, opts \\ []) do
+    :patch |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body)) |> request()
+  end
+
+  def delete(url, query_params \\ %{}, opts \\ []) do
+    :delete |> Finch.build(url(url, query_params), headers(opts)) |> request()
   end
 
   defp url(path, params) do
@@ -29,11 +51,12 @@ defmodule Clerk.HTTP do
 
   defp headers(opts) do
     headers = Keyword.get(opts, :headers, [])
+    content_type = Keyword.get(opts, :content_type, "application/json")
     secret_key = Keyword.get(opts, :secret_key, Application.get_env(:clerk, :secret_key))
 
     headers ++
       [
-        {"Content-Type", "application/json"},
+        {"Content-Type", content_type},
         {"Authorization", "Bearer #{secret_key}"}
       ]
   end

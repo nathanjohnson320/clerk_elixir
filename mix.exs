@@ -24,7 +24,8 @@ defmodule Clerk.MixProject do
       {:joken, "~> 2.6"},
       {:joken_jwks, "~> 1.6"},
       {:plug, ">= 0.0.0"},
-      {:finch, "~> 0.17.0"}
+      {:finch, "~> 0.17.0"},
+      {:multipart, "~> 0.4.0"}
     ]
   end
 end
