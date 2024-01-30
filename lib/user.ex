@@ -341,7 +341,7 @@ defmodule Clerk.User do
   def update_profile_image(user_id, body, opts \\ []) do
     HTTP.post_form(
       "/v1/users/#{user_id}/profile_image",
-      Multipart.Part.text_field(body, :file),
+      Multipart.add_part(Multipart.new(), Multipart.Part.text_field(body, :file)),
       %{},
       opts
     )

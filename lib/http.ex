@@ -9,8 +9,7 @@ defmodule Clerk.HTTP do
     :post |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body)) |> request()
   end
 
-  def post_form(url, body, query_params \\ %{}, opts \\ []) do
-    multipart = Multipart.add_part(Multipart.new(), body)
+  def post_form(url, multipart, query_params \\ %{}, opts \\ []) do
     content_type = Multipart.content_type(multipart, "multipart/form-data")
     opts = Keyword.put(opts, :content_type, content_type)
 
@@ -23,8 +22,25 @@ defmodule Clerk.HTTP do
     |> request()
   end
 
+  def put_form(url, multipart, query_params \\ %{}, opts \\ []) do
+    content_type = Multipart.content_type(multipart, "multipart/form-data")
+    opts = Keyword.put(opts, :content_type, content_type)
+
+    :put
+    |> Finch.build(
+      url(url, query_params),
+      headers(opts),
+      {:stream, Multipart.body_stream(multipart)}
+    )
+    |> request()
+  end
+
   def patch(url, body, query_params \\ %{}, opts \\ []) do
     :patch |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body)) |> request()
+  end
+
+  def put(url, body, query_params \\ %{}, opts \\ []) do
+    :put |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body)) |> request()
   end
 
   def delete(url, query_params \\ %{}, opts \\ []) do

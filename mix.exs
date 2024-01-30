@@ -4,10 +4,27 @@ defmodule Clerk.MixProject do
   def project do
     [
       app: :clerk,
-      version: "0.3.0",
+      version: "1.0.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      description: description(),
+      package: package(),
+      name: "Clerk SDK"
+    ]
+  end
+
+  defp description() do
+    "Client SDK for ClerkJS https://clerk.com/docs/reference/backend-api"
+  end
+
+  defp package() do
+    [
+      name: "clerk",
+      files: ~w(lib priv .formatter.exs mix.exs README* readme* LICENSE*
+                license* CHANGELOG* changelog* src),
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/nathanjohnson320/clerk_elixir"}
     ]
   end
 
