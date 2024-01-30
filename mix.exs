@@ -21,8 +21,8 @@ defmodule Clerk.MixProject do
   defp package() do
     [
       name: "clerk",
-      files: ~w(lib priv .formatter.exs mix.exs README* readme* LICENSE*
-                license* CHANGELOG* changelog* src),
+      files: ~w(lib .formatter.exs mix.exs README* readme* LICENSE*
+                license* src),
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/nathanjohnson320/clerk_elixir"}
     ]
