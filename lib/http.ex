@@ -41,7 +41,7 @@ defmodule Clerk.HTTP do
         if is_list(v) do
           Enum.map(v, fn x -> {k, x} end)
         else
-          {k, v}
+          [{k, v}]
         end
       end)
       |> URI.encode_query()
