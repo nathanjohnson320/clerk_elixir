@@ -1,11 +1,13 @@
 defmodule Clerk.User do
   alias Clerk.HTTP
 
+  alias Clerk.User.Response
+
   @doc """
   Retrieve the details of a user
   """
   def get(user_id, opts \\ []) do
-    HTTP.get("/v1/users/#{user_id}", %{}, opts)
+    HTTP.get("/v1/users/#{user_id}", %{}, opts, Response.User)
   end
 
   @doc """
@@ -67,7 +69,7 @@ defmodule Clerk.User do
   Allows to return users in a particular order. At the moment, you can order the returned users by their created_at,updated_at,email_address,web3wallet,first_name,last_name,phone_number,username,last_active_at,last_sign_in_at. In order to specify the direction, you can use the +/- symbols prepended in the property to order by. For example, if you want users to be returned in descending order according to their created_at property, you can use -created_at. If you don't use + or -, then + is implied. We only support one order_by parameter, and if multiple order_by parameters are provided, we will only keep the first one. For example, if you pass order_by=username&order_by=created_at, we will consider only the first order_by parameter, which is username. The created_at parameter will be ignored in this case.
   """
   def list(params \\ %{}, opts \\ []) do
-    HTTP.get("/v1/users", params, opts)
+    HTTP.get("/v1/users", params, opts, Response.List)
   end
 
   @doc """
@@ -152,7 +154,7 @@ defmodule Clerk.User do
   A custom date/time denoting when the user signed up to the application, specified in RFC3339 format (e.g. 2012-10-20T07:15:20.902Z).
   """
   def create(params, opts \\ []) do
-    HTTP.post("/v1/users", params, %{}, opts)
+    HTTP.post("/v1/users", params, %{}, opts, Response.User)
   end
 
   @doc """

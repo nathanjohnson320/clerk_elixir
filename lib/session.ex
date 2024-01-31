@@ -19,7 +19,9 @@ defmodule Clerk.Session do
   use Joken.Config
 
   alias Clerk.HTTP
-  alias Clerk.Session.FetchingStrategy
+  alias Clerk.Session.{Behaviour, FetchingStrategy, Response}
+
+  @behaviour Behaviour
 
   add_hook(JokenJwks, strategy: FetchingStrategy)
 
@@ -66,13 +68,15 @@ defmodule Clerk.Session do
   Default: 0
   Skip the first offset results when paginating. Needs to be an integer greater or equal to zero. To be used in conjunction with limit.
   """
-  def list(params, opts \\ []) do
-    HTTP.get("/v1/sessions", params, opts)
+  @impl Behaviour
+  def list(params \\ %{}, opts \\ []) do
+    HTTP.get("/v1/sessions", params, opts, Response.List)
   end
 
   @doc """
   Retrieve the details of a session
   """
+  @impl Behaviour
   def get(id, opts \\ []) do
     HTTP.get("/v1/sessions/#{id}", opts)
   end
