@@ -63,7 +63,7 @@ in plug based elixir applications. i.e. (in phoenix):
   end
 ```
 
-will place a `current_user` object in `conn.assigns``
+will place a `current_user` object in `conn.assigns`
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
