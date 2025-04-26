@@ -45,7 +45,10 @@ defmodule Clerk do
     domain = Keyword.fetch!(opts, :domain)
 
     children = [
-      {FetchingStrategy, jwks_url: "https://#{domain}/.well-known/jwks.json"},
+      {FetchingStrategy,
+      first_fetch_sync: true, # Fetch synchronously at startup
+      retries: 3, # retries for each request so it doesn't fail immediately
+      jwks_url: "https://#{domain}/.well-known/jwks.json"},
       {Finch, name: ClerkHTTP}
     ]
 
