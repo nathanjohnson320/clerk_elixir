@@ -14,7 +14,7 @@ defmodule Clerk.AuthenticationPlug do
 
     session_key = Keyword.get(opts, :session_key, "__session")
 
-    with {:ok, session} <- get_auth_token(conn),
+    with {:ok, session} <- get_auth_token(conn, session_key),
          {:ok, %{"sub" => user_id} = session} <- Clerk.Session.verify_and_validate(session),
          {:ok, user} <- Clerk.User.get(user_id) do
       conn |> Plug.Conn.assign(:clerk_session, session) |> Plug.Conn.assign(:current_user, user)
@@ -26,9 +26,8 @@ defmodule Clerk.AuthenticationPlug do
     end
   end
 
-  defp get_auth_token(conn) do
+  defp get_auth_token(conn, session_key) do
     auth_header = get_auth_header(conn)
-    session_key = "__session"
 
     if auth_header do
       {:ok, auth_header}
