@@ -27,19 +27,19 @@ defmodule Clerk.AuthenticationPlug do
   end
 
   defp get_auth_token(conn, session_key) do
-    auth_header = get_auth_header(conn)
+    auth_header = get_token_from_header(conn)
 
-    if auth_header do
+    if auth_header do # if the auth header token is present ...
       {:ok, auth_header}
     else
-      case Map.fetch(conn.req_cookies, session_key) do
+      case Map.fetch(conn.req_cookies, session_key) do # otherwise grab the cookie
         {:ok, session} -> {:ok, session}
         _ -> {:error, :unauthorized}
       end
     end
   end
 
-  defp get_auth_header(conn) do
+  defp get_token_from_header(conn) do
     conn
     |> Plug.Conn.get_req_header("authorization")
     |> List.first()
