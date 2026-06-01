@@ -2,11 +2,13 @@ defmodule Clerk.HTTP do
   @domain "https://api.clerk.com"
 
   def get(url, params \\ %{}, opts \\ []) do
-    :get |> Finch.build(url(url, params), headers(opts)) |> request()
+    :get |> Finch.build(url(url, params), headers(opts)) |> request(opts)
   end
 
   def post(url, body, query_params \\ %{}, opts \\ []) do
-    :post |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body)) |> request()
+    :post
+    |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body))
+    |> request(opts)
   end
 
   def post_form(url, multipart, query_params \\ %{}, opts \\ []) do
@@ -19,7 +21,7 @@ defmodule Clerk.HTTP do
       headers(opts),
       {:stream, Multipart.body_stream(multipart)}
     )
-    |> request()
+    |> request(opts)
   end
 
   def put_form(url, multipart, query_params \\ %{}, opts \\ []) do
@@ -32,19 +34,23 @@ defmodule Clerk.HTTP do
       headers(opts),
       {:stream, Multipart.body_stream(multipart)}
     )
-    |> request()
+    |> request(opts)
   end
 
   def patch(url, body, query_params \\ %{}, opts \\ []) do
-    :patch |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body)) |> request()
+    :patch
+    |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body))
+    |> request(opts)
   end
 
   def put(url, body, query_params \\ %{}, opts \\ []) do
-    :put |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body)) |> request()
+    :put
+    |> Finch.build(url(url, query_params), headers(opts), Jason.encode!(body))
+    |> request(opts)
   end
 
   def delete(url, query_params \\ %{}, opts \\ []) do
-    :delete |> Finch.build(url(url, query_params), headers(opts)) |> request()
+    :delete |> Finch.build(url(url, query_params), headers(opts)) |> request(opts)
   end
 
   defp url(path, params) do
@@ -66,9 +72,11 @@ defmodule Clerk.HTTP do
   end
 
   defp headers(opts) do
+    instance = Keyword.get(opts, :instance, Clerk)
+    config = Clerk.Instance.get(instance)
     headers = Keyword.get(opts, :headers, [])
     content_type = Keyword.get(opts, :content_type, "application/json")
-    secret_key = Keyword.get(opts, :secret_key, Application.get_env(:clerk, :secret_key))
+    secret_key = Keyword.get(opts, :secret_key, config.secret_key)
 
     headers ++
       [
@@ -77,8 +85,10 @@ defmodule Clerk.HTTP do
       ]
   end
 
-  defp request(req) do
-    req |> Finch.request(ClerkHTTP) |> handle_response()
+  defp request(req, opts) do
+    instance = Keyword.get(opts, :instance, Clerk)
+    http_name = Clerk.Instance.get(instance).http_name
+    req |> Finch.request(http_name) |> handle_response()
   end
 
   defp handle_response({:ok, %Finch.Response{status: status, body: body}})

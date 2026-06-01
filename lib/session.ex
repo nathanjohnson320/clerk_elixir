@@ -15,20 +15,30 @@ defmodule Clerk.Session do
       "sid" => "sess_2bVftP1rQemOu4CPj9999999999",
       "sub" => "user_2bVftRtFezPdchfaz9999999999"
     }
+  ```
+
+  For named Clerk instances (e.g. in umbrella apps), pass the instance name:
+
+  ```elixir
+    Clerk.Session.verify_and_validate(jwt, instance: AppA.Clerk)
+  ```
   """
-  use Joken.Config
+  import Joken.Config, only: [default_claims: 1, add_claim: 4]
 
   alias Clerk.HTTP
   alias Clerk.Session.FetchingStrategy
 
-  add_hook(JokenJwks, strategy: FetchingStrategy)
+  @hooks [{JokenJwks, strategy: FetchingStrategy}]
 
-  @impl true
   def token_config do
-    domain = Application.get_env(:clerk, :domain)
-    authorized_parties = Application.get_env(:clerk, :authorized_parties)
+    token_config_for(Clerk.Instance.get())
+  end
 
-    config =
+  def token_config_for(config) do
+    domain = config.domain
+    authorized_parties = config.authorized_parties
+
+    token_config =
       [skip: [:iss]]
       |> default_claims()
       |> add_claim(
@@ -38,9 +48,23 @@ defmodule Clerk.Session do
       )
 
     if is_list(authorized_parties) and authorized_parties != [] do
-      add_claim(config, "azp", nil, &(&1 in authorized_parties))
+      add_claim(token_config, "azp", nil, &(&1 in authorized_parties))
     else
-      config
+      token_config
+    end
+  end
+
+  def verify_and_validate(token, opts \\ []) do
+    case Keyword.get(opts, :instance, Clerk) do
+      Clerk -> default_verify_and_validate(token)
+      instance -> verify_for_instance(token, instance)
+    end
+  end
+
+  def verify_and_validate!(token, opts \\ []) do
+    case verify_and_validate(token, opts) do
+      {:ok, claims} -> claims
+      {:error, reason} -> raise Joken.Error, reason
     end
   end
 
@@ -97,5 +121,21 @@ defmodule Clerk.Session do
   """
   def create_session_from_jwt_template(session_id, jwt_template, opts \\ []) do
     HTTP.post("/v1/sessions/#{session_id}/tokens/#{jwt_template}", %{}, opts)
+  end
+
+  defp default_verify_and_validate(token) do
+    Joken.verify_and_validate(token_config(), token, nil, %{}, @hooks)
+  end
+
+  defp verify_for_instance(token, instance) do
+    config = Clerk.Instance.get(instance)
+
+    Joken.verify_and_validate(
+      token_config_for(config),
+      token,
+      nil,
+      %{},
+      [{JokenJwks, strategy: config.fetching_strategy}]
+    )
   end
 end
