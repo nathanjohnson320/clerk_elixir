@@ -26,14 +26,22 @@ defmodule Clerk.Session do
   @impl true
   def token_config do
     domain = Application.get_env(:clerk, :domain)
+    authorized_parties = Application.get_env(:clerk, :authorized_parties)
 
-    [skip: [:iss]]
-    |> default_claims()
-    |> add_claim(
-      "iss",
-      fn -> "https://#{domain}" end,
-      &(&1 == "https://#{domain}")
-    )
+    config =
+      [skip: [:iss]]
+      |> default_claims()
+      |> add_claim(
+        "iss",
+        fn -> "https://#{domain}" end,
+        &(&1 == "https://#{domain}")
+      )
+
+    if is_list(authorized_parties) and authorized_parties != [] do
+      add_claim(config, "azp", nil, &(&1 in authorized_parties))
+    else
+      config
+    end
   end
 
   @doc """
