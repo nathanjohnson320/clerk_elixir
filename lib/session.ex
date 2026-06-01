@@ -15,20 +15,29 @@ defmodule Clerk.Session do
       "sid" => "sess_2bVftP1rQemOu4CPj9999999999",
       "sub" => "user_2bVftRtFezPdchfaz9999999999"
     }
+  ```
+
+  When running multiple Clerk tenants, pass the same `%Clerk.Config{}` used to
+  start the supervisor:
+
+  ```elixir
+    Clerk.Session.verify_and_validate(jwt, config: config)
+  ```
   """
-  use Joken.Config
+  import Joken.Config, only: [default_claims: 1, add_claim: 4]
 
+  alias Clerk.Config
   alias Clerk.HTTP
-  alias Clerk.Session.FetchingStrategy
 
-  add_hook(JokenJwks, strategy: FetchingStrategy)
-
-  @impl true
   def token_config do
-    domain = Application.get_env(:clerk, :domain)
-    authorized_parties = Application.get_env(:clerk, :authorized_parties)
+    token_config_for(Config.default())
+  end
 
-    config =
+  def token_config_for(%Config{} = config) do
+    domain = config.domain
+    authorized_parties = config.authorized_parties
+
+    token_config =
       [skip: [:iss]]
       |> default_claims()
       |> add_claim(
@@ -38,9 +47,28 @@ defmodule Clerk.Session do
       )
 
     if is_list(authorized_parties) and authorized_parties != [] do
-      add_claim(config, "azp", nil, &(&1 in authorized_parties))
+      add_claim(token_config, "azp", nil, &(&1 in authorized_parties))
     else
-      config
+      token_config
+    end
+  end
+
+  def verify_and_validate(token, opts \\ []) do
+    config = config(opts)
+
+    Joken.verify_and_validate(
+      token_config_for(config),
+      token,
+      nil,
+      %{},
+      [{JokenJwks, strategy: config.fetching_strategy}]
+    )
+  end
+
+  def verify_and_validate!(token, opts \\ []) do
+    case verify_and_validate(token, opts) do
+      {:ok, claims} -> claims
+      {:error, reason} -> raise Joken.Error, reason
     end
   end
 
@@ -97,5 +125,12 @@ defmodule Clerk.Session do
   """
   def create_session_from_jwt_template(session_id, jwt_template, opts \\ []) do
     HTTP.post("/v1/sessions/#{session_id}/tokens/#{jwt_template}", %{}, opts)
+  end
+
+  defp config(opts) do
+    case Keyword.get(opts, :config) do
+      %Config{} = config -> config
+      nil -> Config.default()
+    end
   end
 end

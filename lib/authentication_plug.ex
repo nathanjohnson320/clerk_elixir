@@ -12,6 +12,10 @@ defmodule Clerk.AuthenticationPlug do
       `:current_user`. When `false`, builds `:current_user` from the JWT
       claims alone (no network request). Defaults to `true`.
 
+    * `:config` - a `%Clerk.Config{}` for verification and API calls.
+      Defaults to `Clerk.config/0`. Required when running multiple Clerk
+      tenants in an umbrella app.
+
   ## Examples
 
       # Fetches user from Clerk API on every request (default)
@@ -19,6 +23,9 @@ defmodule Clerk.AuthenticationPlug do
 
       # Skip the API call — use JWT claims only
       plug Clerk.AuthenticationPlug, fetch_user: false
+
+      # Use an explicit Clerk config (umbrella apps)
+      plug Clerk.AuthenticationPlug, config: config
   """
 
   @behaviour Plug
@@ -30,10 +37,12 @@ defmodule Clerk.AuthenticationPlug do
   def call(conn, opts) do
     session_key = Keyword.get(opts, :session_key, "__session")
     fetch_user? = Keyword.get(opts, :fetch_user, true)
+    config_opts = Keyword.take(opts, [:config])
 
     with {:ok, token} <- get_auth_token(conn, session_key),
-         {:ok, %{"sub" => user_id} = claims} <- Clerk.Session.verify_and_validate(token),
-         {:ok, user} <- maybe_fetch_user(user_id, claims, fetch_user?) do
+         {:ok, %{"sub" => user_id} = claims} <-
+           Clerk.Session.verify_and_validate(token, config_opts),
+         {:ok, user} <- maybe_fetch_user(user_id, claims, fetch_user?, config_opts) do
       conn
       |> Plug.Conn.assign(:clerk_session, claims)
       |> Plug.Conn.assign(:current_user, user)
@@ -45,9 +54,10 @@ defmodule Clerk.AuthenticationPlug do
     end
   end
 
-  defp maybe_fetch_user(user_id, _claims, true), do: Clerk.User.get(user_id)
+  defp maybe_fetch_user(user_id, _claims, true, config_opts),
+    do: Clerk.User.get(user_id, config_opts)
 
-  defp maybe_fetch_user(_user_id, claims, false) do
+  defp maybe_fetch_user(_user_id, claims, false, _config_opts) do
     {:ok,
      %{
        "id" => claims["sub"],

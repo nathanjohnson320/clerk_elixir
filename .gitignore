@@ -26,3 +26,7 @@ clerk-*.tar
 /tmp/
 
 .elixir_ls
+
+.dexter.db
+.dexter.db-shm
+.dexter.db-wal
