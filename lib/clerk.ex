@@ -35,70 +35,48 @@ defmodule Clerk do
   """
   use Supervisor
 
-  alias Clerk.Instance
-  alias Clerk.Session.FetchingStrategy
+  alias Clerk.Config
 
   @doc false
   def child_spec(arg) do
-    name = Keyword.get(arg, :name, __MODULE__)
+    config = config!(arg)
 
     %{
-      id: name,
-      start: {__MODULE__, :start_link, [arg]},
+      id: config.name,
+      start: {__MODULE__, :start_link, [config]},
       type: :supervisor
     }
   end
 
-  def start_link(opts) do
-    name = Keyword.get(opts, :name, __MODULE__)
+  def start_link(arg) do
+    config = config!(arg)
 
-    with :ok <- validate_opts(name, opts) do
-      Supervisor.start_link(__MODULE__, opts, name: name)
+    with :ok <- Config.validate(config) do
+      Supervisor.start_link(__MODULE__, config, name: config.name)
     end
   end
 
-  def init(opts) do
-    name = Keyword.get(opts, :name, __MODULE__)
-    domain = Keyword.fetch!(opts, :domain)
-    secret_key = Keyword.get(opts, :secret_key)
-    authorized_parties = Keyword.get(opts, :authorized_parties)
-    fetching_strategy = Keyword.get(opts, :fetching_strategy, FetchingStrategy)
-    http_name = http_name(name)
-
-    Instance.register(name, %{
-      domain: domain,
-      http_name: http_name,
-      secret_key: secret_key,
-      fetching_strategy: fetching_strategy,
-      authorized_parties: authorized_parties
-    })
-
+  def init(%Config{} = config) do
     strategy_opts =
       [
-        name: fetching_strategy,
+        name: config.fetching_strategy,
         first_fetch_sync: true,
         retries: 3,
-        jwks_url: "https://#{domain}/.well-known/jwks.json"
+        jwks_url: "https://#{config.domain}/.well-known/jwks.json"
       ]
-      |> Keyword.merge(Keyword.take(opts, [:should_start]))
+      |> maybe_put(:should_start, config.should_start)
 
     children = [
-      {Instance.Cleanup, instance: name},
-      {fetching_strategy, strategy_opts},
-      {Finch, name: http_name}
+      {config.fetching_strategy, strategy_opts},
+      {Finch, name: config.http_name}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
   end
 
-  defp validate_opts(name, opts) do
-    if name != __MODULE__ and not Keyword.has_key?(opts, :fetching_strategy) do
-      {:error, {:missing_fetching_strategy, name}}
-    else
-      :ok
-    end
-  end
+  defp config!(%Config{} = config), do: config
+  defp config!(opts) when is_list(opts), do: Config.new(opts)
 
-  defp http_name(Clerk), do: ClerkHTTP
-  defp http_name(name), do: Module.concat(name, HTTP)
+  defp maybe_put(opts, _key, nil), do: opts
+  defp maybe_put(opts, key, value), do: Keyword.put(opts, key, value)
 end

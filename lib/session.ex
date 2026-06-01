@@ -17,24 +17,23 @@ defmodule Clerk.Session do
     }
   ```
 
-  For named Clerk instances (e.g. in umbrella apps), pass the instance name:
+  When running multiple Clerk tenants, pass the same `%Clerk.Config{}` used to
+  start the supervisor:
 
   ```elixir
-    Clerk.Session.verify_and_validate(jwt, instance: AppA.Clerk)
+    Clerk.Session.verify_and_validate(jwt, config: config)
   ```
   """
   import Joken.Config, only: [default_claims: 1, add_claim: 4]
 
+  alias Clerk.Config
   alias Clerk.HTTP
-  alias Clerk.Session.FetchingStrategy
-
-  @hooks [{JokenJwks, strategy: FetchingStrategy}]
 
   def token_config do
-    token_config_for(Clerk.Instance.get())
+    token_config_for(Config.from_application_env())
   end
 
-  def token_config_for(config) do
+  def token_config_for(%Config{} = config) do
     domain = config.domain
     authorized_parties = config.authorized_parties
 
@@ -55,10 +54,15 @@ defmodule Clerk.Session do
   end
 
   def verify_and_validate(token, opts \\ []) do
-    case Keyword.get(opts, :instance, Clerk) do
-      Clerk -> default_verify_and_validate(token)
-      instance -> verify_for_instance(token, instance)
-    end
+    config = config(opts)
+
+    Joken.verify_and_validate(
+      token_config_for(config),
+      token,
+      nil,
+      %{},
+      [{JokenJwks, strategy: config.fetching_strategy}]
+    )
   end
 
   def verify_and_validate!(token, opts \\ []) do
@@ -123,19 +127,10 @@ defmodule Clerk.Session do
     HTTP.post("/v1/sessions/#{session_id}/tokens/#{jwt_template}", %{}, opts)
   end
 
-  defp default_verify_and_validate(token) do
-    Joken.verify_and_validate(token_config(), token, nil, %{}, @hooks)
-  end
-
-  defp verify_for_instance(token, instance) do
-    config = Clerk.Instance.get(instance)
-
-    Joken.verify_and_validate(
-      token_config_for(config),
-      token,
-      nil,
-      %{},
-      [{JokenJwks, strategy: config.fetching_strategy}]
-    )
+  defp config(opts) do
+    case Keyword.get(opts, :config) do
+      %Config{} = config -> config
+      nil -> Config.from_application_env()
+    end
   end
 end

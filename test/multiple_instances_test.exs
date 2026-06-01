@@ -1,6 +1,8 @@
 defmodule Clerk.MultipleInstancesTest do
   use ExUnit.Case, async: false
 
+  alias Clerk.Config
+
   defmodule InstanceAFetchingStrategy do
     use JokenJwks.DefaultStrategyTemplate
 
@@ -23,8 +25,6 @@ defmodule Clerk.MultipleInstancesTest do
             :exit, _ -> :ok
           end
         end
-
-        Clerk.Instance.unregister(name)
       end
     end)
 
@@ -34,18 +34,22 @@ defmodule Clerk.MultipleInstancesTest do
   test "starts multiple Clerk supervisors with unique names" do
     assert {:ok, _} =
              Clerk.start_link(
-               domain: "a.clerk.accounts.dev",
-               name: Clerk.InstanceA,
-               fetching_strategy: InstanceAFetchingStrategy,
-               should_start: false
+               Config.new(
+                 domain: "a.clerk.accounts.dev",
+                 name: Clerk.InstanceA,
+                 fetching_strategy: InstanceAFetchingStrategy,
+                 should_start: false
+               )
              )
 
     assert {:ok, _} =
              Clerk.start_link(
-               domain: "b.clerk.accounts.dev",
-               name: Clerk.InstanceB,
-               fetching_strategy: InstanceBFetchingStrategy,
-               should_start: false
+               Config.new(
+                 domain: "b.clerk.accounts.dev",
+                 name: Clerk.InstanceB,
+                 fetching_strategy: InstanceBFetchingStrategy,
+                 should_start: false
+               )
              )
 
     assert Process.whereis(Clerk.InstanceA)
@@ -56,12 +60,14 @@ defmodule Clerk.MultipleInstancesTest do
 
   test "requires a custom fetching strategy when using a custom name" do
     assert {:error, {:missing_fetching_strategy, Clerk.RequiresStrategy}} =
-             Clerk.start_link(domain: "a.clerk.accounts.dev", name: Clerk.RequiresStrategy)
+             Clerk.start_link(
+               Config.new(domain: "a.clerk.accounts.dev", name: Clerk.RequiresStrategy)
+             )
   end
 
-  test "registers instance config for API calls" do
-    {:ok, _} =
-      Clerk.start_link(
+  test "config carries settings for API calls" do
+    config =
+      Config.new(
         domain: "a.clerk.accounts.dev",
         name: Clerk.InstanceA,
         secret_key: "sk_test_a",
@@ -69,7 +75,7 @@ defmodule Clerk.MultipleInstancesTest do
         should_start: false
       )
 
-    config = Clerk.Instance.get(Clerk.InstanceA)
+    {:ok, _} = Clerk.start_link(config)
 
     assert config.domain == "a.clerk.accounts.dev"
     assert config.http_name == Clerk.InstanceA.HTTP
@@ -78,25 +84,27 @@ defmodule Clerk.MultipleInstancesTest do
   end
 
   test "child_spec uses the configured name as id" do
-    spec =
-      Clerk.child_spec(
+    config =
+      Config.new(
         domain: "a.clerk.accounts.dev",
         name: Clerk.InstanceA,
         fetching_strategy: InstanceAFetchingStrategy
       )
 
+    spec = Clerk.child_spec(config)
+
     assert spec.id == Clerk.InstanceA
     assert spec.type == :supervisor
   end
 
-  test "token_config_for uses instance domain" do
-    config = %{
-      domain: "a.clerk.accounts.dev",
-      authorized_parties: nil,
-      http_name: Clerk.InstanceA.HTTP,
-      secret_key: "sk_test_a",
-      fetching_strategy: InstanceAFetchingStrategy
-    }
+  test "token_config_for uses config domain" do
+    config =
+      Config.new(
+        domain: "a.clerk.accounts.dev",
+        name: Clerk.InstanceA,
+        secret_key: "sk_test_a",
+        fetching_strategy: InstanceAFetchingStrategy
+      )
 
     token_config = Clerk.Session.token_config_for(config)
     %Joken.Claim{validate: validate} = token_config["iss"]
@@ -106,13 +114,13 @@ defmodule Clerk.MultipleInstancesTest do
   end
 
   test "default instance uses ClerkHTTP" do
-    {:ok, _} =
-      Clerk.start_link(
+    config =
+      Config.new(
         domain: "default.clerk.accounts.dev",
         should_start: false
       )
 
-    config = Clerk.Instance.get(Clerk)
+    {:ok, _} = Clerk.start_link(config)
 
     assert config.http_name == ClerkHTTP
     assert Process.whereis(ClerkHTTP)

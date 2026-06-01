@@ -101,32 +101,51 @@ defmodule AppA.Clerk.FetchingStrategy do
 end
 ```
 
-### 2. Start a named Clerk supervisor with inline opts
+### 2. Build a config and start the supervisor
 
 Do not rely on shared `config :clerk` for domain or secret key in multi-tenant setups —
-umbrella apps share one config namespace.
+umbrella apps share one config namespace. Build a `%Clerk.Config{}` and keep a reference
+to pass on every API call and plug.
 
 ```elixir
+# apps/app_a/lib/app_a/clerk_config.ex
+defmodule AppA.ClerkConfig do
+  def config do
+    Clerk.Config.new(
+      name: AppA.Clerk,
+      domain: "app-a.clerk.accounts.dev",
+      secret_key: System.fetch_env!("APP_A_CLERK_SECRET_KEY"),
+      fetching_strategy: AppA.Clerk.FetchingStrategy,
+      authorized_parties: ["https://app-a.example.com"]
+    )
+  end
+end
+
 # apps/app_a/lib/app_a/application.ex
+config = AppA.ClerkConfig.config()
+
 children = [
-  {Clerk,
-   name: AppA.Clerk,
-   domain: "app-a.clerk.accounts.dev",
-   secret_key: System.fetch_env!("APP_A_CLERK_SECRET_KEY"),
-   fetching_strategy: AppA.Clerk.FetchingStrategy}
+  {Clerk, config}
 ]
 ```
 
-### 3. Pass `instance:` on API calls and authentication
+`authorized_parties` is optional. When set, session JWT verification for that config
+validates the token's `azp` (authorized party) claim against the list. Omit it, or pass
+an empty list, to skip `azp` validation. In a single-app setup, the same option can be
+set via `config :clerk, authorized_parties: [...]`.
+
+### 3. Pass `config:` on API calls and authentication
 
 ```elixir
-Clerk.User.list(%{}, instance: AppA.Clerk)
-Clerk.Session.verify_and_validate(token, instance: AppA.Clerk)
-plug Clerk.AuthenticationPlug, instance: AppA.Clerk
+config = AppA.ClerkConfig.config()
+
+Clerk.User.list(%{}, config: config)
+Clerk.Session.verify_and_validate(token, config: config)
+plug Clerk.AuthenticationPlug, config: config
 ```
 
 Single-app usage with `config :clerk` and `{Clerk, Application.get_all_env(:clerk)}` is
-unchanged and does not require `instance:`.
+unchanged and does not require `config:`.
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can

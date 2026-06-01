@@ -72,8 +72,7 @@ defmodule Clerk.HTTP do
   end
 
   defp headers(opts) do
-    instance = Keyword.get(opts, :instance, Clerk)
-    config = Clerk.Instance.get(instance)
+    config = config(opts)
     headers = Keyword.get(opts, :headers, [])
     content_type = Keyword.get(opts, :content_type, "application/json")
     secret_key = Keyword.get(opts, :secret_key, config.secret_key)
@@ -86,9 +85,15 @@ defmodule Clerk.HTTP do
   end
 
   defp request(req, opts) do
-    instance = Keyword.get(opts, :instance, Clerk)
-    http_name = Clerk.Instance.get(instance).http_name
+    http_name = config(opts).http_name
     req |> Finch.request(http_name) |> handle_response()
+  end
+
+  defp config(opts) do
+    case Keyword.get(opts, :config) do
+      %Clerk.Config{} = config -> config
+      nil -> Clerk.Config.from_application_env()
+    end
   end
 
   defp handle_response({:ok, %Finch.Response{status: status, body: body}})
