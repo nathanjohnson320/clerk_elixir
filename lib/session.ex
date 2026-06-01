@@ -30,7 +30,7 @@ defmodule Clerk.Session do
   alias Clerk.HTTP
 
   def token_config do
-    token_config_for(Config.from_application_env())
+    token_config_for(Config.default())
   end
 
   def token_config_for(%Config{} = config) do
@@ -130,7 +130,7 @@ defmodule Clerk.Session do
   defp config(opts) do
     case Keyword.get(opts, :config) do
       %Config{} = config -> config
-      nil -> Config.from_application_env()
+      nil -> Config.default()
     end
   end
 end

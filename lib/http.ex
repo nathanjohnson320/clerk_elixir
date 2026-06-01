@@ -92,7 +92,7 @@ defmodule Clerk.HTTP do
   defp config(opts) do
     case Keyword.get(opts, :config) do
       %Clerk.Config{} = config -> config
-      nil -> Clerk.Config.from_application_env()
+      nil -> Clerk.Config.default()
     end
   end
 

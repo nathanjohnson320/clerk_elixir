@@ -37,6 +37,17 @@ defmodule Clerk do
 
   alias Clerk.Config
 
+  @doc """
+  Returns the default `%Clerk.Config{}` from `config :clerk`.
+
+  Use this when you want to pass config explicitly without building a custom
+  `%Clerk.Config{}` for multi-tenant setups:
+
+      children = [{Clerk, Clerk.config()}]
+      Clerk.User.list(%{}, config: Clerk.config())
+  """
+  def config, do: Config.default()
+
   @doc false
   def child_spec(arg) do
     config = config!(arg)

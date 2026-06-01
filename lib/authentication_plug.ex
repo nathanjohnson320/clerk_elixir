@@ -13,8 +13,8 @@ defmodule Clerk.AuthenticationPlug do
       claims alone (no network request). Defaults to `true`.
 
     * `:config` - a `%Clerk.Config{}` for verification and API calls.
-      Defaults to config from `Application.get_env(:clerk, ...)`. Required
-      when running multiple Clerk tenants in an umbrella app.
+      Defaults to `Clerk.config/0`. Required when running multiple Clerk
+      tenants in an umbrella app.
 
   ## Examples
 

@@ -46,7 +46,7 @@ defmodule Clerk.ConfigTest do
     assert :ok = Config.validate(config)
   end
 
-  test "from_application_env/0 reads application config" do
+  test "default/0 reads application config" do
     original = Application.get_env(:clerk, :secret_key)
     Application.put_env(:clerk, :secret_key, "sk_from_app")
 
@@ -58,9 +58,24 @@ defmodule Clerk.ConfigTest do
       end
     end)
 
-    config = Config.from_application_env()
+    config = Config.default()
 
     assert config.name == Clerk
     assert config.secret_key == "sk_from_app"
+  end
+
+  test "Clerk.config/0 returns the default config" do
+    original = Application.get_env(:clerk, :domain)
+    Application.put_env(:clerk, :domain, "example.clerk.accounts.dev")
+
+    on_exit(fn ->
+      if original do
+        Application.put_env(:clerk, :domain, original)
+      else
+        Application.delete_env(:clerk, :domain)
+      end
+    end)
+
+    assert %Config{domain: "example.clerk.accounts.dev"} = Clerk.config()
   end
 end

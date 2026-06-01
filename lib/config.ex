@@ -74,11 +74,12 @@ defmodule Clerk.Config do
   end
 
   @doc """
-  Builds a config from `Application.get_env/2` for the `:clerk` app.
+  Returns the default config built from `config :clerk` application config.
 
-  Used as the default when API calls omit `config:`.
+  Equivalent to passing `Application.get_all_env(:clerk)` to `{Clerk, ...}`.
+  Used automatically when API calls omit `config:`.
   """
-  def from_application_env do
+  def default do
     new(
       domain: Application.get_env(:clerk, :domain),
       secret_key: Application.get_env(:clerk, :secret_key),
