@@ -10,7 +10,7 @@ defmodule Clerk do
 
   def deps do
     [
-      {:clerk, "~> 0.1.0"}
+      {:clerk, "~> 2.0"}
     ]
   end
   ```
